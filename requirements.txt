@@ -1,0 +1,3 @@
+fast-alpr
+opencv-python
+RPi.GPIO  # Solo para Raspberry Pi
