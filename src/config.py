@@ -1,14 +1,14 @@
 import logging
+import os
 
 class Config:
     # Perfil actual (cambiar según el entorno)
-    PROFILE = "RASPBERRY"  # Opciones: "UBUNTU" o "RASPBERRY" <button class="citation-flag" data-index="7">
+    PROFILE = "UBUNTU"  # Opciones: "UBUNTU" o "RASPBERRY" <button class="citation-flag" data-index="7">
 
     # Configuración general
-    SOURCE_TYPE = "STREAM"
-    VIDEO_PATH = "tests/media/test_video.mp4"
-    STREAM_URL = "http://localhost:8080/stream"
-
+    SOURCE_TYPE = os.getenv("SOURCE_TYPE", "CAMERA")  # Default a "VIDEO"
+    VIDEO_PATH = os.getenv("VIDEO_PATH")
+    STREAM_URL = os.getenv("STREAM_URL")
     # Thresholds
     DETECTION_CONFIDENCE = 0.7
     OCR_CONFIDENCE = 0.85
