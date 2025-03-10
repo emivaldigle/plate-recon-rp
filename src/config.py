@@ -3,7 +3,7 @@ import os
 
 class Config:
     # Perfil actual (cambiar según el entorno)
-    PROFILE = "RASPBERRY"  # Opciones: "UBUNTU" o "RASPBERRY" <button class="citation-flag" data-index="7">
+    PROFILE = "UBUNTU"  # Opciones: "UBUNTU" o "RASPBERRY" <button class="citation-flag" data-index="7">
 
     # Configuración general
     SOURCE_TYPE = os.getenv("SOURCE_TYPE", "CAMERA")  # Default a "VIDEO"
