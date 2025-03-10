@@ -6,18 +6,15 @@ humanfriendly==10.0
 markdown-it-py==3.0.0
 mdurl==0.1.2
 mpmath==1.3.0
-numpy==1.21.6
-onnxruntime==1.19.2
-onnxruntime-gpu==1.21.0
+numpy==1.21.6  # Versión compatible con ARM
+onnxruntime==1.19.2  # Versión compatible con ARM
 open-image-models==0.2.1
-opencv-python==4.9.0.80
+opencv-python==4.9.0.80  # Versión compatible con ARM
 packaging==24.2
 protobuf==6.30.0
 Pygments==2.19.1
-python-dotenv==1.0.1
 PyYAML==6.0.2
 rich==13.9.4
 RPi.GPIO==0.7.1
 sympy==1.13.3
 tqdm==4.67.1
-typing_extensions==4.12.2
