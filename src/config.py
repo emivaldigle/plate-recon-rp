@@ -10,8 +10,8 @@ class Config:
     VIDEO_PATH = os.getenv("VIDEO_PATH")
     STREAM_URL = os.getenv("STREAM_URL")
     # Thresholds
-    DETECTION_CONFIDENCE = 0.7
-    OCR_CONFIDENCE = 0.85
+    DETECTION_CONFIDENCE = 0.85
+    OCR_CONFIDENCE = 0.9
 
     # HTTP Server
     HTTP_SERVER_HOST = "http://mock-server:8000"

@@ -62,6 +62,8 @@ class PlateDetector:
                     # self.gpio.led_off("processing")  # Apaga y detiene el thread <button class="citation-flag" data-index="7">
 
                     if confidence > Config.OCR_CONFIDENCE:
+                        self.logger.info(f"Plate detected with text: {text} and confidencee {confidence}")
+                        self.logger.debug(f"Plate detected {result}")
                         self.gpio.blink_led("access_granted", interval=0.5, duration=2)  # Parpadea 2s <button class="citation-flag" data-index="7">
                     else:
                         self.gpio.blink_led("access_denied", interval=0.5, duration=2)   # Parpadea 2s <button class="citation-flag" data-index="7">
