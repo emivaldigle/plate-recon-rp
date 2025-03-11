@@ -6,14 +6,14 @@ RUN apt-get update && apt-get install -y \
     python3.11 \
     python3.11-venv \
     python3-pip \
-    libcamera-dev \  # Reemplaza python3-libcamera <button class="citation-flag" data-index="7">
-    libdrm-dev \     # Reemplaza libkms-dev <button class="citation-flag" data-index="7">
+    libcamera-dev \ 
+    libdrm-dev \     
     libopencv-dev \
     libatlas-base-dev \
     libboost-dev \
     libgnutls28-dev \
     libx11-dev \
-    libegl-mesa0 \    # Corrección para EGL <button class="citation-flag" data-index="7">
+    libegl-mesa0 \  
     libgles2-mesa
 
 # 2. Crear entorno virtual y configurar symlinks
