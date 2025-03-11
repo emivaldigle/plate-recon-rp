@@ -22,12 +22,10 @@ RUN python3.11 -m venv /app/venv && \
     ln -s /usr/lib/python3/dist-packages/libcamera* /app/venv/lib/python3.11/site-packages/ && \
     echo "import site; site.addsitedir('/usr/lib/python3/dist-packages')" >> /app/venv/lib/python3.11/site-packages/sitecustomize.py
 
-# 3. Copiar código fuente
+# 3. Copiar codigo fuente
 COPY . /app
 WORKDIR /app
 
-# 4. Instalar dependencias Python
-RUN /app/venv/bin/pip install -r requirements.txt
+RUN /app/venv/bin/python -m pip install -r requirements.txt
 
-# 5. Ejecutar el script (con JSONArgsRecommended fix <button class="citation-flag" data-index="4">)
 CMD ["sh", "-c", "source /app/venv/bin/activate && python main.py"]
