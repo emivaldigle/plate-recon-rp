@@ -1,6 +1,5 @@
 import logging
 from src.config import Config
-import RPi.GPIO as GPIO  # Solo para Raspberry Pi <button class="citation-flag" data-index="6">
 import threading
 import time
 

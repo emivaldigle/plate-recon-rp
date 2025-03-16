@@ -1,0 +1,61 @@
+import aiohttp
+import asyncio
+from src.config import Config
+from src.database.models import ConfigModel
+import logging
+from src.http.asynchronous_api_client import AsynchronousAPIClient
+
+
+class EntityConfigService:
+
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+
+    def map_to_db_data(self, remote_data):
+        return (
+                    remote_data.get("id"),
+                    remote_data.get("syncIntervalMinutes"),
+                    remote_data.get("parkingHoursAllowed"),
+                    remote_data.get("visitSizeLimit"),
+                    remote_data.get("parkingSizeLimit"),
+                )
+
+    async def sync_config(self):
+        entity_id = Config.ENTITY_ID
+        db_client = ConfigModel()
+        api_client = AsynchronousAPIClient(Config.HTTP_SERVER_HOST)
+
+        try:
+            async with api_client as client:  # Usamos el cliente asíncrono
+                remote_data = await client.get(f"/entities/{entity_id}")
+                
+                # Verificamos si la configuración ya existe
+                if db_client.find_config(entity_id) is None:
+                    self.logger.info("Configuration not found, creating one")
+                    config_data = self.map_to_db_data(remote_data)
+                    self.logger.info(f"Saving config {config_data}")
+                    db_client.init_config(config_data)
+                    self.logger.info("Config created successfully")
+                else:
+                    self.logger.info("Configuration found, updating...")
+                    self.logger.info(f'Remote data collected: {remote_data}')
+                    config_data = self.map_to_db_data(remote_data)
+                    config_data_without_id = config_data[1:]
+
+                    db_client.update_config(config_data_without_id, entity_id)
+                    self.logger.info("Config updated successfully")    
+
+        except Exception as ex:
+            self.logger.error(f"Unable to load configuration {ex}")
+
+        return remote_data
+
+
+# Método para ejecutar la función asíncrona
+async def main():
+    service = EntityConfigService()
+    await service.sync_config()  # Llamamos a la función asíncrona correctamente
+
+# Ejecutamos el ciclo de eventos de asyncio para que se ejecute la función asíncrona
+if __name__ == "__main__":
+    asyncio.run(main())  # Aquí ejecutamos la función principal de manera asíncrona

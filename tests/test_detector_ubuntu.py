@@ -1,5 +1,5 @@
 import unittest
-from src.detector import PlateDetector
+from src.processing.detector import PlateDetector
 from src.config import Config
 
 class TestPlateDetectionUbuntu(unittest.TestCase):

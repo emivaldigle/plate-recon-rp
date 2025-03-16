@@ -1,13 +1,8 @@
-import os
-os.environ["QT_QPA_PLATFORM"] = "vnc"
-os.environ["DISPLAY"] = ":0"
-
 import cv2
 import logging
 from fast_alpr import ALPR
 from src.config import Config
-from src.gpio_controller import GPIOController
-from picamera2 import Picamera2, Preview
+from src.processing.gpio_controller import GPIOController
 import time
 from threading import Thread  # Para manejar parpadeos en segundo plano
 
@@ -22,6 +17,7 @@ class PlateDetector:
 
         # Configurar camara
         if Config.SOURCE_TYPE == "CAMERA":
+            from picamera2 import Picamera2
             self.picam = Picamera2()
             config = self.picam.create_preview_configuration(main={"size": (640, 480), "format": "RGB888"})
             self.picam.configure(config)
@@ -51,19 +47,19 @@ class PlateDetector:
                     if not ret:
                         self.logger.error("Failed to read frame")
                         break
-
+                # 3 letras + 1 numero o 4 letras + 1 numero o 4 letras + 2 numeros
                 # Procesar frame
                 results = self.alpr.predict(frame)
                 for result in results:
                     text = result.ocr.text
-                    confidence = result.ocr.confidence
-
+                    confidence = result.detection.confidence
+                    ocr_confidence = result.ocr.confidence
                     # Detener parpadeo azul y manejar LEDs
                     # self.gpio.led_off("processing")  # Apaga y detiene el thread <button class="citation-flag" data-index="7">
+                    self.logger.debug(f"Plate detected {result}")
 
-                    if confidence > Config.OCR_CONFIDENCE:
-                        self.logger.info(f"Plate detected with text: {text} and confidencee {confidence}")
-                        self.logger.debug(f"Plate detected {result}")
+                    if ocr_confidence > Config.OCR_CONFIDENCE and confidence > Config.DETECTION_CONFIDENCE:
+                        self.logger.info(f"Plate detected with text: {text}, ocr confidence {ocr_confidence} detection confidence {confidence}")
                         self.gpio.blink_led("access_granted", interval=0.5, duration=2)  # Parpadea 2s <button class="citation-flag" data-index="7">
                     else:
                         self.gpio.blink_led("access_denied", interval=0.5, duration=2)   # Parpadea 2s <button class="citation-flag" data-index="7">
