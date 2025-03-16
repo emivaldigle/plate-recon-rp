@@ -65,19 +65,18 @@ class DatabaseConnector:
         # Crear tabla de eventos
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT PRIMARY KEY,
                 poc_id INTEGER NOT NULL,
                 plate TEXT NOT NULL,
                 type TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_sync DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
 
         # Crear índices para optimizar búsquedas
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_vehicles_plate ON vehicles (plate)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_parking_identifier ON parking (identifier)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_events_synced ON events (last_sync)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_events_synced ON events (plate)')
 
         conn.commit()
         conn.close()

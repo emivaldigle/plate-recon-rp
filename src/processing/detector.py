@@ -5,6 +5,7 @@ from src.config import Config
 from src.processing.gpio_controller import GPIOController
 import time
 from threading import Thread  # Para manejar parpadeos en segundo plano
+from src.messaging.mqtt_event_service import MqttEventService
 
 class PlateDetector:
     def __init__(self):
@@ -60,6 +61,8 @@ class PlateDetector:
 
                     if ocr_confidence > Config.OCR_CONFIDENCE and confidence > Config.DETECTION_CONFIDENCE:
                         self.logger.info(f"Plate detected with text: {text}, ocr confidence {ocr_confidence} detection confidence {confidence}")
+                        mqtt_event_service = MqttEventService()
+                        mqtt_event_service.publish_event("ACCESS", text)
                         self.gpio.blink_led("access_granted", interval=0.5, duration=2)  # Parpadea 2s <button class="citation-flag" data-index="7">
                     else:
                         self.gpio.blink_led("access_denied", interval=0.5, duration=2)   # Parpadea 2s <button class="citation-flag" data-index="7">

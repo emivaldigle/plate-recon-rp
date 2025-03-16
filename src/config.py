@@ -22,6 +22,7 @@ class Config:
     # Local database
     DATABASE_URL = "gate_command_local.db"
     ENTITY_ID = os.getenv("ENTITY_ID", 1)
+    POC_ID = os.getenv("POC_ID", 1)
 
     # HTTP Server
     HTTP_SERVER_HOST = os.getenv("HTTP_SERVER_HOST")

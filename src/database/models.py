@@ -210,55 +210,19 @@ class EventModel:
     def __init__(self):
         self.db = DatabaseConnector()
 
-    def register_event(self, event_type, plate):
+    def register_event(self, event_id, event_type, poc_id, plate):
         conn = self.db.get_conn()
         try:
             conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO events (type, plate, created_at, last_sync)
-                VALUES (?, ?, ?, ?)
-            ''', (event_type, plate, datetime.now(), False))
+                INSERT INTO events (id, type, poc_id, plate, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (event_id, event_type, poc_id, plate, datetime.now()))
             conn.commit()  # Confirma la transacción
             logging.debug(f"Event registered with type {event_type} and plate {plate}")
         except Exception as e:
             conn.rollback()  # Revertir cambios en caso de error
             logging.error(f"Error registering event: {e}")
-        finally:
-            conn.close()
-
-    def get_unsynced_events(self, threshold_minutes):
-        conn = self.db.get_conn()
-        cursor = conn.cursor()
-        
-        # Calculamos la fecha y hora actual menos el umbral de minutos
-        threshold_time = datetime.now() - timedelta(minutes=threshold_minutes)
-        threshold_time_str = threshold_time.strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Filtramos los eventos cuya fecha de last_sync es anterior al umbral
-        cursor.execute("""
-            SELECT * FROM events
-            WHERE (last_sync IS NULL OR last_sync <= ?) 
-        """, (threshold_time_str,))  # La fecha umbral debe ser más reciente que last_sync
-        events = cursor.fetchall()
-        conn.close()
-        logging.debug(f"Unsynced events retrieved: {events}")
-        return events
-
-    def mark_event_as_synced(self, event_id):
-        conn = self.db.get_conn()
-        try:
-            conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE events
-                SET last_sync = ?
-                WHERE id = ?
-            ''', (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), event_id))
-            conn.commit()  # Confirma la transacción
-            logging.debug(f"Event with id {event_id} marked as synced")
-        except Exception as e:
-            conn.rollback()  # Revertir cambios en caso de error
-            logging.error(f"Error marking event as synced: {e}")
         finally:
             conn.close()
