@@ -51,15 +51,12 @@ class PlateDetector:
                     if not ret:
                         self.logger.error("Failed to read frame")
                         break
-                # 3 letras + 1 numero o 4 letras + 1 numero o 4 letras + 2 numeros
-                # Procesar frame
+
                 results = self.alpr.predict(frame)
                 for result in results:
                     plate = result.ocr.text
                     confidence = result.detection.confidence
                     ocr_confidence = result.ocr.confidence
-                    # Detener parpadeo azul y manejar LEDs
-                    # self.gpio.led_off("processing")  # Apaga y detiene el thread <button class="citation-flag" data-index="7">
                     self.logger.debug(f"Plate detected {result}")
 
                     if ocr_confidence > Config.OCR_CONFIDENCE and confidence > Config.DETECTION_CONFIDENCE:

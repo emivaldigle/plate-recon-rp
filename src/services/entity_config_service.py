@@ -20,7 +20,7 @@ class EntityConfigService:
             remote_data.get("active")
         )
 
-    def sync_config(self):
+    def load_remote_config(self):
         entity_id = Config.ENTITY_ID
         db_client = ConfigModel()
         api_client = SynchronousAPIClient(Config.HTTP_SERVER_HOST)

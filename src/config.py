@@ -38,7 +38,8 @@ class Config:
         GPIO_PINS = {
             "processing": 18,   # Azul
             "access_granted": 23,  # Verde
-            "access_denied": 24    # Rojo 
+            "access_denied": 24, # Rojo
+            "motion_sensor": 3    # Motion
         }
     else:
         GPIO_PINS = {} 

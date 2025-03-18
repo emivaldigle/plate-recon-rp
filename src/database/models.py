@@ -128,6 +128,15 @@ class ParkingModel:
         logging.debug(f"Last synced parking: {parking}")
         return parking
     
+    def find_by_id(self, id):
+        conn = self.db.get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM parking WHERE id = ?", (id,))
+        parking = cursor.fetchone()
+        conn.close()
+        logging.debug(f"Parking found by identifier {id}: {parking}")
+        return parking
+    
     def find_by_user_id(self, user_id):
         conn = self.db.get_conn()
         cursor = conn.cursor()

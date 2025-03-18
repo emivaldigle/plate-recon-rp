@@ -24,7 +24,7 @@ class DatabaseConnector:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS config (
                 id TEXT PRIMARY KEY,
-                entity_id INTEGER NOT NULL,       
+                entity_id TEXT NOT NULL,       
                 sync_interval_minutes INTEGER,
                 parking_hours_allowed INTEGER,
                 visit_size_limit INTEGER,
@@ -39,7 +39,7 @@ class DatabaseConnector:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS vehicles (
                 id TEXT PRIMARY KEY,
-                user_id INTEGER,
+                user_id TEXT,
                 user_type TEXT NOT NULL,
                 plate TEXT NOT NULL UNIQUE,
                 vehicle_type TEXT NOT NULL,
@@ -52,7 +52,7 @@ class DatabaseConnector:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS parking (
                 id TEXT PRIMARY KEY,
-                user_id INTEGER,
+                user_id TEXT,
                 identifier TEXT NOT NULL UNIQUE,
                 current_license_plate TEXT,
                 is_for_visit BOOLEAN NOT NULL,

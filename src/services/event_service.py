@@ -8,6 +8,7 @@ class EventService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
+
     def find_last_registered_event_type(self, plate):
         event_db = EventModel()
         api_client = SynchronousAPIClient(Config.HTTP_SERVER_HOST)

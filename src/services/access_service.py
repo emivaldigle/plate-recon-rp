@@ -22,7 +22,7 @@ class AccessService:
                 try:
                     remote_access = api_client.get(f"/access/entity/{entityId}/plate/{plate}")
                     if remote_access is not None:
-                        return remote_access.get("authorized"), remote_access["identifier"]
+                        return remote_access.get("authorized"), remote_access.get("identifier")
                 except Exception as ex:
                     self.logger.warning("Unable to check authorization remotely")
             else:
@@ -37,7 +37,7 @@ class AccessService:
                         remote_parking = api_client.get(f"/parking/find-by-user/{user_id}")
                         if remote_parking is not None:
                             self.logger.debug("Authorization obtained remotely...")
-                            return remote_parking.get("available"), remote_parking.get("identifier")
+                            return remote_parking.get("available"), remote_parking.get("parkingIdentifier")
                     except Exception as ex:
                         self.logger.warning("Unable to check remote parking...")
                 else:
@@ -46,6 +46,7 @@ class AccessService:
                         authorized = True
                     self.logger.info(f"Authorization obtained locally is_authorized: {authorized}")
                     return  authorized, parking[2]
-            return False    
+            return False, None    
         except Exception as ex:
             self.logger.error(f"Unable to validate access {ex}")
+            return False, None
