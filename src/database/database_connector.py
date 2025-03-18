@@ -23,13 +23,14 @@ class DatabaseConnector:
         # Crear tabla de configuraciones
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS config (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                entity_id INTEGER NOT NULL,
+                id TEXT PRIMARY KEY,
+                entity_id INTEGER NOT NULL,       
                 sync_interval_minutes INTEGER,
                 parking_hours_allowed INTEGER,
                 visit_size_limit INTEGER,
                 parking_size_limit INTEGER,
-                last_sync DATETIME DEFAULT CURRENT_TIMESTAMP
+                last_sync DATETIME DEFAULT CURRENT_TIMESTAMP,
+                active BOOLEAN DEFAULT TRUE
             )
         ''')
 
@@ -37,20 +38,20 @@ class DatabaseConnector:
         # Crear tabla de vehículos
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS vehicles (
-                id INTEGER PRIMARY KEY,
+                id TEXT PRIMARY KEY,
                 user_id INTEGER,
                 user_type TEXT NOT NULL,
                 plate TEXT NOT NULL UNIQUE,
                 vehicle_type TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_sync DATETIME DEFAULT CURRENT_TIMESTAMP
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
 
         # Crear tabla de estacionamientos
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS parking (
-                id INTEGER PRIMARY KEY,
+                id TEXT PRIMARY KEY,
                 user_id INTEGER,
                 identifier TEXT NOT NULL UNIQUE,
                 current_license_plate TEXT,
@@ -58,7 +59,8 @@ class DatabaseConnector:
                 available BOOLEAN NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 expiration_date DATETIME,
-                last_sync DATETIME DEFAULT CURRENT_TIMESTAMP
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                is_sync BOOLEAN DEFAULT FALSE
             )
         ''')
 
@@ -69,7 +71,8 @@ class DatabaseConnector:
                 poc_id INTEGER NOT NULL,
                 plate TEXT NOT NULL,
                 type TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                sync BOOLEAN DEFAULT FALSE
             )
         ''')
 

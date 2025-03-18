@@ -1,6 +1,6 @@
 import logging
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(verbose=True, override=True)
 import os
  # Carga automáticamente las variables desde .env
 class Config:
@@ -21,8 +21,8 @@ class Config:
 
     # Local database
     DATABASE_URL = "gate_command_local.db"
-    ENTITY_ID = os.getenv("ENTITY_ID", 1)
-    POC_ID = os.getenv("POC_ID", 1)
+    ENTITY_ID = os.getenv("ENTITY_ID")
+    POC_ID = os.getenv("POC_ID")
 
     # HTTP Server
     HTTP_SERVER_HOST = os.getenv("HTTP_SERVER_HOST")

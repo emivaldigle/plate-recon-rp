@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from src.config import Config
 from src.database.models import ConfigModel
 from src.http.synchronous_api_client import SynchronousAPIClient  # Importamos el cliente síncrono
@@ -10,11 +11,13 @@ class EntityConfigService:
 
     def map_to_db_data(self, remote_data):
         return (
-            remote_data.get("id"),
+            Config.ENTITY_ID,
             remote_data.get("syncIntervalMinutes"),
             remote_data.get("parkingHoursAllowed"),
             remote_data.get("visitSizeLimit"),
             remote_data.get("parkingSizeLimit"),
+            datetime.now(),
+            remote_data.get("active")
         )
 
     def sync_config(self):
@@ -24,7 +27,7 @@ class EntityConfigService:
 
         try:
             # Hacemos una llamada síncrona
-            remote_data = api_client.get(f"/entities/{entity_id}")
+            remote_data = api_client.get(f"/entities/configuration/{entity_id}")
 
             # Verificamos si la configuración ya existe
             if db_client.find_config(entity_id) is None:

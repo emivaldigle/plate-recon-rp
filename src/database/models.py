@@ -6,6 +6,7 @@ from src.database.database_connector import DatabaseConnector
 logging.basicConfig(level=logging.DEBUG)
 
 class VehicleModel:
+    
     def __init__(self):
         self.db = DatabaseConnector()
     
@@ -21,26 +22,23 @@ class VehicleModel:
     def find_last_sync_vehicle(self):
         conn = self.db.get_conn()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM vehicles ORDER BY last_sync DESC LIMIT 1")
+        cursor.execute("SELECT * FROM vehicles ORDER BY updated_at DESC LIMIT 1")
         vehicle = cursor.fetchone()
         conn.close()
         logging.debug(f"Last synced vehicle: {vehicle}")
         return vehicle
 
     def create_vehicle(self, vehicle_data):
-        last_sync = datetime.now()
-
-        vehicle_data_with_sync = vehicle_data + (last_sync,)  
         conn = self.db.get_conn()
         try:
             conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO vehicles (id, plate, vehicle_type, user_id, user_type, created_at, last_sync)
+                INSERT INTO vehicles (id, plate, vehicle_type, user_id, user_type, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', vehicle_data_with_sync)
+            ''', vehicle_data)
             conn.commit()  # Confirma la transacción
-            logging.debug(f"Vehicle inserted with data: {vehicle_data_with_sync}")
+            logging.debug(f"Vehicle inserted with data: {vehicle_data}")
         except Exception as e:
             conn.rollback()  # Revertir cambios en caso de error
             logging.error(f"Error inserting vehicle: {e}")
@@ -48,19 +46,16 @@ class VehicleModel:
             conn.close()
 
     def update_vehicle(self, vehicle_data):
-        last_sync = datetime.now()
-
-        vehicle_data_with_sync = vehicle_data + (last_sync,)  
         conn = self.db.get_conn()
         try:
             conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
             cursor = conn.cursor()
             cursor.execute('''
-                UPDATE vehicles SET plate = ?, vehicle_type = ?, user_id = ?, user_type = ?, created_at = ?, last_sync = ?
+                UPDATE vehicles SET plate = ?, vehicle_type = ?, user_id = ?, user_type = ?, created_at = ?, updated_at = ?
                 WHERE id = ?
-            ''', vehicle_data_with_sync)
+            ''', vehicle_data)
             conn.commit()  # Confirma la transacción
-            logging.debug(f"Vehicle updated with data: {vehicle_data_with_sync}")
+            logging.debug(f"Vehicle updated with data: {vehicle_data}")
         except Exception as e:
             conn.rollback()  # Revertir cambios en caso de error
             logging.error(f"Error updating vehicle: {e}")
@@ -86,8 +81,8 @@ class ConfigModel:
             conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO config (entity_id, sync_interval_minutes, parking_hours_allowed, visit_size_limit, parking_size_limit)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO config (entity_id, sync_interval_minutes, parking_hours_allowed, visit_size_limit, parking_size_limit, last_sync, active)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', config_data)
             conn.commit()  # Confirma la transacción
             logging.debug(f"Config inserted with data: {config_data}")
@@ -108,7 +103,8 @@ class ConfigModel:
                     parking_hours_allowed = ?, 
                     visit_size_limit = ?, 
                     parking_size_limit = ?, 
-                    last_sync = CURRENT_TIMESTAMP
+                    last_sync = ?,
+                    active = ?
                 WHERE entity_id = ?
             ''', config_data + (entity_id,)) 
             conn.commit()  # Confirma la transacción
@@ -126,10 +122,19 @@ class ParkingModel:
     def find_last_sync_parking(self):
         conn = self.db.get_conn()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM parking ORDER BY last_sync DESC LIMIT 1")
+        cursor.execute("SELECT * FROM parking ORDER BY updated_at DESC LIMIT 1")
         parking = cursor.fetchone()
         conn.close()
         logging.debug(f"Last synced parking: {parking}")
+        return parking
+    
+    def find_by_user_id(self, user_id):
+        conn = self.db.get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM parking WHERE user_id = ? AND available = 1", (user_id,))
+        parking = cursor.fetchone()
+        conn.close()
+        logging.debug(f"Parking found by identifier {user_id}: {parking}")
         return parking
     
     def find_parking_by_identifier(self, identifier):
@@ -141,38 +146,55 @@ class ParkingModel:
         logging.debug(f"Parking found by identifier {identifier}: {parking}")
         return parking
 
-    def update_parking_availability(self, identifier, available):
+    def update_parking_availability(self, identifier, available, plate, last_updated):
         conn = self.db.get_conn()
         try:
             conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
             cursor = conn.cursor()
             cursor.execute('''
                 UPDATE parking
-                SET available = ?
+                SET available = ?,
+                current_license_plate = ?,
+                updated_at = ?
                 WHERE identifier = ?
-            ''', (available, identifier))
+            ''', (available, plate, last_updated, identifier))
             conn.commit()  # Confirma la transacción
-            logging.debug(f"Parking availability updated for identifier {identifier} to {available}")
+            logging.debug(f"Parking availability updated for identifier {identifier} to available: {available}")
         except Exception as e:
             conn.rollback()  # Revertir cambios en caso de error
             logging.error(f"Error updating parking availability {e}")
         finally:
             conn.close()
 
-    def create_parking(self, parking_data):
-        last_sync = datetime.now()
-
-        parking_data_with_sync = parking_data + (last_sync,)  
+    def update_parking_sync(self, identifier):
         conn = self.db.get_conn()
         try:
             conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO parking (id, user_id, identifier, current_license_plate, is_for_visit, available, created_at, expiration_date, last_sync)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', parking_data_with_sync)
+                UPDATE parking
+                SET is_sync = 1
+                WHERE identifier = ?
+            ''', (identifier,))
             conn.commit()  # Confirma la transacción
-            logging.debug(f"Parking inserted with data: {parking_data_with_sync}")
+            logging.debug(f"Parking sync status updated for identifier {identifier}")
+        except Exception as e:
+            conn.rollback()  # Revertir cambios en caso de error
+            logging.error(f"Error updating parking sync {e}")
+        finally:
+            conn.close()
+
+    def create_parking(self, parking_data):
+        conn = self.db.get_conn()
+        try:
+            conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO parking (id, user_id, identifier, current_license_plate, is_for_visit, available, created_at, expiration_date, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', parking_data)
+            conn.commit()  # Confirma la transacción
+            logging.debug(f"Parking inserted with data: {parking_data}")
         except Exception as e:
             conn.rollback()  # Revertir cambios en caso de error
             logging.error(f"Error inserting parking: {e}")
@@ -195,7 +217,7 @@ class ParkingModel:
                            available = ?, 
                            created_at = ?, 
                            expiration_date = ?,
-                           last_sync = ?
+                           updated_at = ?
                 WHERE id = ?
             ''', parking_data_with_sync)
             conn.commit()  # Confirma la transacción
@@ -209,6 +231,24 @@ class ParkingModel:
 class EventModel:
     def __init__(self):
         self.db = DatabaseConnector()
+
+    def mark_event_as_synced(self, event_id):
+        conn = self.db.get_conn()
+        try:
+            conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE events
+                SET sync = TRUE
+                WHERE id = ?           
+            ''', (event_id,))
+            conn.commit()  # Confirma la transacción
+            logging.debug(f"Event with id {event_id} synced successfully")
+        except Exception as e:
+            conn.rollback()  # Revertir cambios en caso de error
+            logging.error(f"Error marking event as sync: {e}")
+        finally:
+            conn.close()
 
     def register_event(self, event_id, event_type, poc_id, plate):
         conn = self.db.get_conn()
@@ -226,3 +266,12 @@ class EventModel:
             logging.error(f"Error registering event: {e}")
         finally:
             conn.close()
+        
+    def find_last_event_by_plate(self, plate):
+        conn = self.db.get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM events WHERE plate = ? ORDER BY created_at DESC", (plate,))
+        event = cursor.fetchone()
+        conn.close()
+        logging.debug(f"Event found by plate {plate}: {event}")
+        return event

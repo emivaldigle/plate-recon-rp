@@ -6,6 +6,9 @@ from src.processing.gpio_controller import GPIOController
 import time
 from threading import Thread  # Para manejar parpadeos en segundo plano
 from src.messaging.mqtt_event_service import MqttEventService
+from src.messaging.mqtt_parking_service import MqttParkingService
+from src.services.access_service import AccessService
+from src.services.event_service import EventService
 
 class PlateDetector:
     def __init__(self):
@@ -52,7 +55,7 @@ class PlateDetector:
                 # Procesar frame
                 results = self.alpr.predict(frame)
                 for result in results:
-                    text = result.ocr.text
+                    plate = result.ocr.text
                     confidence = result.detection.confidence
                     ocr_confidence = result.ocr.confidence
                     # Detener parpadeo azul y manejar LEDs
@@ -60,17 +63,31 @@ class PlateDetector:
                     self.logger.debug(f"Plate detected {result}")
 
                     if ocr_confidence > Config.OCR_CONFIDENCE and confidence > Config.DETECTION_CONFIDENCE:
-                        self.logger.info(f"Plate detected with text: {text}, ocr confidence {ocr_confidence} detection confidence {confidence}")
+                        self.logger.info(f"Plate detected with text: {plate}, ocr confidence {ocr_confidence} detection confidence {confidence}")
+                        access_service = AccessService()
                         mqtt_event_service = MqttEventService()
-                        mqtt_event_service.publish_event("ACCESS", text)
-                        self.gpio.blink_led("access_granted", interval=0.5, duration=2)  # Parpadea 2s <button class="citation-flag" data-index="7">
+                        mqtt_parking_service = MqttParkingService()
+                        event_service = EventService()
+                        last_event_type = event_service.find_last_registered_event_type(plate)
+                        is_authorized, parking_identifier = access_service.is_vehicle_authorized(plate, last_event_type)
+                        if is_authorized:
+                            # open gate
+                            event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
+                            mqtt_event_service.publish_event(event_type, plate)
+                            available = True if event_type == "EXIT" else False
+                            mqtt_parking_service.publish_parking_update(available, parking_identifier, plate)
+                            self.gpio.blink_led("access_granted", interval=0.5, duration=2)
+                        else:
+                            last_event_type = event_service.find_last_registered_event_type(plate)
+                            event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
+                            self.gpio.blink_led("access_denied", interval=0.5, duration=2)
+                            mqtt_event_service.publish_event("DENIED_" + event_type, plate)
                     else:
-                        self.gpio.blink_led("access_denied", interval=0.5, duration=2)   # Parpadea 2s <button class="citation-flag" data-index="7">
-
+                        self.gpio.blink_led("access_denied", interval=0.5, duration=2)
                         # Dibujar en el frame
                         bbox = result.detection.bounding_box
                         cv2.rectangle(frame, (bbox.x1, bbox.y1), (bbox.x2, bbox.y2), (0, 255, 0), 2)
-                        cv2.putText(frame, text, (bbox.x1, bbox.y1-10), 
+                        cv2.putText(frame, plate, (bbox.x1, bbox.y1-10), 
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
                     # Mostrar frame

@@ -2,15 +2,15 @@ import paho.mqtt.client as mqtt
 import json
 import uuid
 from datetime import datetime
-from src.database.models import EventModel
+from src.database.models import ParkingModel
 from src.config import Config
 import logging
 
 MQTT_BROKER = "172.18.0.2"
 MQTT_PORT = 1883
-EVENTS_TOPIC = "local-events/" + Config.ENTITY_ID + "/create"
+EVENTS_TOPIC = "local-parking/" + Config.ENTITY_ID + "/update"
 
-class MqttEventService:
+class MqttParkingService:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.client = mqtt.Client()
@@ -36,18 +36,23 @@ class MqttEventService:
     def on_disconnect(self, client, userdata, rc):
         self.logger.warning("Desconnected from broker")
 
-    def publish_event(self, event_type, plate):
-        poc_id = Config.POC_ID
-        event_id = str(uuid.uuid4())
-        event_model = EventModel()
-        event_model.register_event(event_id, event_type, poc_id, plate)  # Guarda en BD local
+    def publish_parking_update(self, available, identifier, plate):
+        parking_db = ParkingModel()
+        last_updated_at = datetime.now().isoformat()
+        parking_db.update_parking_availability(available, identifier, plate, last_updated_at)  # Guarda en BD local
 
-        payload = json.dumps({"id": event_id, "pocId": poc_id, "type": event_type, "plate": plate})
+        payload = json.dumps({
+            "entityId": Config.ENTITY_ID, 
+            "identifier": identifier, 
+            "currentLicensePlate": plate, 
+            "available": available,
+            "lastUpdatedAt": last_updated_at
+            })
 
         # Publicar mensaje
         result, mid = self.client.publish(EVENTS_TOPIC, payload, qos=2)
 
         if result == mqtt.MQTT_ERR_SUCCESS:
-            event_model.mark_event_as_synced(event_id)
+            parking_db.update_parking_sync(identifier)
         else:
             self.logger.error(f"Error sending message to MQTT broker: {result}")

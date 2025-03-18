@@ -15,12 +15,18 @@ class Synchronizer:
         
         configService = EntityConfigService()
 
+        # always sync config and pocs at init
         configs = configService.sync_config()
         
         vehicleService = VehicleService()
         sync_interval = configs.get("syncIntervalMinutes")
-        vehicleService.sync_vehicles(sync_interval)
+        
+        # initial loads if needed
+        vehicleService.load_remote_vehicles()
 
         parkingService = ParkingService()
 
-        parkingService.sync_parking(sync_interval)
+        parkingService.load_remote_parking()
+
+
+        
