@@ -31,8 +31,8 @@ class ParkingService:
                 for parking in remote_parking:
                     existing_parking = db_client.find_by_id(parking["id"])
                     
-                    api_date = parking.get("lastUpdatedAt")
-                    
+                    api_date_str = parking.get("lastUpdatedAt")
+                    api_date = datetime.strptime(api_date_str, "%Y-%m-%dT%H:%M:%S.%f")
                     if existing_parking:
                         local_date_str = existing_parking[UPDATED_AT_INDEX]
                         local_date = datetime.strptime(local_date_str, "%Y-%m-%dT%H:%M:%S.%f") if isinstance(local_date_str, str) else local_date_str
