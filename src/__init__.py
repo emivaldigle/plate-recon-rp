@@ -5,7 +5,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.handlers.QueueHandler(logging.handlers.queue()),
+        logging.handlers.QueueHandler(logging.handlers.QueueHandler()),
         logging.FileHandler("/plate_recognition.log", mode='a'),
     ]
 )
