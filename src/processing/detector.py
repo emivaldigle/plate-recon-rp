@@ -79,21 +79,26 @@ class PlateDetector:
                         event_service = EventService()
                         last_event_type = event_service.find_last_registered_event_type(plate)
                         is_authorized, parking_identifier = access_service.is_vehicle_authorized(plate, last_event_type)
+                        self.logger.info(f"parking identifier {parking_identifier}")
                         if is_authorized:
                             # open gate
                             event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
                             mqtt_event_service.publish_event(event_type, plate)
                             available = True if event_type == "EXIT" else False
                             mqtt_parking_service.publish_parking_update(available, parking_identifier, plate)
-                            self.gpio.blink_led("access_granted", interval=0.5, duration=2)
+                            self.gpio.led_on("access_granted")
                         else:
                             last_event_type = event_service.find_last_registered_event_type(plate)
                             event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
-                            self.gpio.blink_led("access_denied", interval=0.5, duration=2)
-                            mqtt_event_service.publish_event("DENIED_" + event_type, plate)
+                            self.gpio.led_on("access_denied")
+                            final_event_type = f"DENIED_{event_type}"
+                            mqtt_event_service.publish_event(final_event_type, plate)
+                        self.logger.info("awaiting 10 seconds")
+                        self.gpio.led_off("processing")
+                        time.sleep(10)
                     else:
                         self.gpio.blink_led("access_denied", interval=0.5, duration=2)
-
+                
                 # Control de frames máximos
                 frame_count += 1
                 self.logger.info(f"frame count {frame_count}")
@@ -105,8 +110,15 @@ class PlateDetector:
             # Detener parpadeos y limpiar
             if Config.SOURCE_TYPE == "CAMERA":
                 self.picam.stop()
+                self.picam.close()
             else:
                 self.cap.release()
             cv2.destroyAllWindows()
+            try:
+                self.gpio.led_off("processing")
+                self.gpio.led_off("access_granted")
+                self.gpio.led_off("access_denied")
+            except ex:
+                self.logging.debug("unable to stop leds")
             
 

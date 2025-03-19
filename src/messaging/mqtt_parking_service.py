@@ -39,7 +39,7 @@ class MqttParkingService:
     def publish_parking_update(self, available, identifier, plate):
         parking_db = ParkingModel()
         last_updated_at = datetime.now().isoformat()
-        parking_db.update_parking_availability(available, identifier, plate, last_updated_at)  # Guarda en BD local
+        parking_db.update_parking_availability(identifier, available, plate, last_updated_at)  # Guarda en BD local
 
         payload = json.dumps({
             "entityId": Config.ENTITY_ID, 

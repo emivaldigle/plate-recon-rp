@@ -168,7 +168,7 @@ class ParkingModel:
                 WHERE identifier = ?
             ''', (available, plate, last_updated, identifier))
             conn.commit()  # Confirma la transacción
-            logging.debug(f"Parking availability updated for identifier {identifier} to available: {available}")
+            logging.debug(f"Parking availability updated with identifier {identifier} to available: {available}")
         except Exception as e:
             conn.rollback()  # Revertir cambios en caso de error
             logging.error(f"Error updating parking availability {e}")
@@ -211,9 +211,7 @@ class ParkingModel:
             conn.close()
 
     def update_parking(self, parking_data):
-        last_sync = datetime.now()
 
-        parking_data_with_sync = parking_data + (last_sync,)  
         conn = self.db.get_conn()
         try:
             conn.execute('BEGIN TRANSACTION')  # Inicia la transacción
@@ -228,9 +226,9 @@ class ParkingModel:
                            expiration_date = ?,
                            updated_at = ?
                 WHERE id = ?
-            ''', parking_data_with_sync)
+            ''', parking_data)
             conn.commit()  # Confirma la transacción
-            logging.debug(f"Parking updated with data: {parking_data_with_sync}")
+            logging.debug(f"Parking updated with data: {parking_data}")
         except Exception as e:
             conn.rollback()  # Revertir cambios en caso de error
             logging.error(f"Error updating parking: {e}")

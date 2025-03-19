@@ -19,9 +19,8 @@ def initialize_db():
 def on_motion_detected():
     """Action to perform when motion is detected."""
     detector = PlateDetector()
-    detector.detect_plates(100)
-    time.sleep(10)
-
+    detector.detect_plates(30)
+    time.sleep(1)
 
 def monitor_motion_in_background(gpio_controller):
     """
@@ -29,9 +28,12 @@ def monitor_motion_in_background(gpio_controller):
     This ensures the main program remains responsive.
     """
     try:
+        print("Starting motion sensor monitoring...")
         gpio_controller.monitor_motion_sensor(callback=on_motion_detected)
     except KeyboardInterrupt:
         print("Stopping motion sensor monitoring...")
+    except Exception as e:
+        print(f"Error in motion sensor monitoring: {e}")
 
 
 def main():

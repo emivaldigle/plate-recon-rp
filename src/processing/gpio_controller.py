@@ -40,7 +40,7 @@ class GPIOController:
         if not self.MOTION_SENSOR_PIN:
             raise ValueError("Motion sensor pin is not configured in GPIO_PINS.")
         if not self.mock_gpio:
-            self.GPIO.setup(self.MOTION_SENSOR_PIN, self.GPIO.IN)
+            self.GPIO.setup(self.MOTION_SENSOR_PIN, self.GPIO.IN, pull_up_down=self.GPIO.PUD_DOWN)
 
     def led_on(self, led_type):
         pin = Config.GPIO_PINS.get(led_type)
@@ -59,6 +59,35 @@ class GPIOController:
             self._mock_states[pin] = True
             self.logger.debug(f"Mock: LED {led_type} on (pin {pin})")
 
+    def blink_led(self, led_type, interval=0.5, duration=None):
+        pin = Config.GPIO_PINS.get(led_type)
+        if not pin:
+            self.logger.error(f"Invalid LED type: {led_type}")
+            return
+
+        if led_type in self._blink_threads and self._blink_threads[led_type].is_alive():
+            self.logger.warning(f"LED {led_type} is already blinking, stopping it first")
+            self.led_off(led_type)
+
+        stop_event = threading.Event()
+        self._stop_events[led_type] = stop_event
+
+        def blink():
+            start_time = time.time()
+            while (duration is None or time.time() - start_time < duration) and not stop_event.is_set():
+                self.GPIO.output(pin, self.GPIO.HIGH)
+                stop_event.wait(interval)
+                self.GPIO.output(pin, self.GPIO.LOW)
+                stop_event.wait(interval)
+            self.GPIO.output(pin, self.GPIO.LOW)  # Asegurar apagado final
+            self.logger.debug(f"LED {led_type} blinking stopped")
+
+        thread = threading.Thread(target=blink, daemon=True)
+        self._blink_threads[led_type] = thread
+        thread.start()
+        self.logger.debug(f"LED {led_type} blinking started")
+
+            
     def led_off(self, led_type):
         pin = Config.GPIO_PINS.get(led_type)
         if not pin:
@@ -68,64 +97,23 @@ class GPIOController:
         if not self.mock_gpio:
             # Detener hilo de parpadeo si existe
             if led_type in self._stop_events:
-                self._stop_events[led_type].set()
-                self._blink_threads[led_type].join()
+                self._stop_events[led_type].set()  # Signal para detener el hilo
+                self._blink_threads[led_type].join(timeout=1)  # Esperar a que termine
                 del self._stop_events[led_type]
                 del self._blink_threads[led_type]
+
+            # Apagar LED asegurando que la senal sea LOW
             self.GPIO.output(pin, self.GPIO.LOW)
-            self.logger.debug(f"LED {led_type} off")
+            self.logger.debug(f"LED {led_type} off (pin {pin})")
         else:
-            # Simular apagado
             self._mock_states[pin] = False
             self.logger.debug(f"Mock: LED {led_type} off (pin {pin})")
-
-    def blink_led(self, led_type, interval=0.5, duration=None):
-        pin = Config.GPIO_PINS.get(led_type)
-        if not pin:
-            self.logger.error(f"Invalid LED type: {led_type}")
-            return
-
+        
+        # Verificar que el LED realmente esta en LOW
         if not self.mock_gpio:
-            # Crear evento y hilo para el parpadeo
-            stop_event = threading.Event()
-            self._stop_events[led_type] = stop_event
+            actual_state = self.GPIO.input(pin)
+            self.logger.debug(f"LED {led_type} state after off: {actual_state}")
 
-            def blink():
-                start_time = time.time()
-                while (duration is None or time.time() - start_time < duration) and not stop_event.is_set():
-                    self.GPIO.output(pin, self.GPIO.HIGH)
-                    stop_event.wait(interval)
-                    self.GPIO.output(pin, self.GPIO.LOW)
-                    stop_event.wait(interval)
-                self.GPIO.output(pin, self.GPIO.LOW)  # Asegurar apagado final
-
-            thread = threading.Thread(target=blink, daemon=True)
-            self._blink_threads[led_type] = thread
-            thread.start()
-            self.logger.debug(f"LED {led_type} blinking started")
-        else:
-            # Simular parpadeo
-            def mock_blink():
-                start_time = time.time()
-                while (duration is None or time.time() - start_time < duration):
-                    self._mock_states[pin] = True
-                    self.logger.debug(f"Mock: LED {led_type} blinking HIGH (pin {pin})")
-                    time.sleep(interval)
-                    self._mock_states[pin] = False
-                    self.logger.debug(f"Mock: LED {led_type} blinking LOW (pin {pin})")
-                    time.sleep(interval)
-
-            stop_event = threading.Event()
-            self._stop_events[led_type] = stop_event
-
-            def mock_blink_wrapper():
-                mock_blink()
-                self._mock_states[pin] = False  # Asegurar apagado final
-
-            thread = threading.Thread(target=mock_blink_wrapper, daemon=True)
-            self._blink_threads[led_type] = thread
-            thread.start()
-            self.logger.debug(f"Mock: LED {led_type} blinking started")
 
     def cleanup(self):
         if not self.mock_gpio:
@@ -143,31 +131,22 @@ class GPIOController:
     def monitor_motion_sensor(self, callback=None):
         if not self.mock_gpio:
             try:
+                self.logger.info("Starting motion sensor monitoring...")
+                last_state = self.GPIO.input(self.MOTION_SENSOR_PIN)  # Estado inicial
+
                 while True:
                     motion_detected = self.GPIO.input(self.MOTION_SENSOR_PIN)
-                    if motion_detected and not self.motion_detected:
-                        self.logger.debug("Motion detected!")
-                        self.motion_detected = True
-                        if callback:
-                            callback()
-                    elif not motion_detected and self.motion_detected:
-                        self.logger.debug("Motion stopped.")
-                        self.motion_detected = False
-                    time.sleep(0.1)  # Pequeña pausa para evitar lecturas rápidas
+
+                    if motion_detected != last_state:  # Solo imprimir si el estado cambia
+                        last_state = motion_detected
+                        self.logger.info("Motion detected!" if motion_detected else "Motion stopped.")
+
+                        if motion_detected and callback:
+                            try:
+                                callback()
+                            except Exception as e:
+                                self.logger.error(f"Error in callback: {e}")
+
+                    time.sleep(0.1)  # Reducir el tiempo de espera
             except KeyboardInterrupt:
                 self.logger.info("Stopping motion sensor monitoring.")
-        else:
-            # Simulación del sensor de movimiento
-            try:
-                while True:
-                    # Simular detección de movimiento cada 5 segundos
-                    time.sleep(5)
-                    self.logger.debug("Mock: Motion detected!")
-                    self.motion_detected = True
-                    if callback:
-                        callback()
-                    time.sleep(5)
-                    self.logger.debug("Mock: Motion stopped.")
-                    self.motion_detected = False
-            except KeyboardInterrupt:
-                self.logger.info("Stopping mock motion sensor monitoring.")

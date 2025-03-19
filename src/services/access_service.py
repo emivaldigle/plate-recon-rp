@@ -22,7 +22,7 @@ class AccessService:
                 try:
                     remote_access = api_client.get(f"/access/entity/{entityId}/plate/{plate}")
                     if remote_access is not None:
-                        return remote_access.get("authorized"), remote_access.get("identifier")
+                        return last_event_type=="ACCESS" or remote_access.get("authorized"), remote_access.get("identifier")
                 except Exception as ex:
                     self.logger.warning("Unable to check authorization remotely")
             else:
@@ -37,9 +37,9 @@ class AccessService:
                         remote_parking = api_client.get(f"/parking/find-by-user/{user_id}")
                         first_available = next((parking for parking in remote_parking if parking.get("available")), None)
                         if (first_available):
-                            return True, first_available.get("parkingIdentifier")
+                            return True, first_available.get("identifier")
                         else:
-                            return False, remote_parking[0].get("parkingIdentifier")
+                            return last_event_type=="ACCESS" or False, remote_parking[0].get("identifier")
                     except Exception as ex:
                         self.logger.warning(f"Unable to check remote parking... {ex}")
                 else:
@@ -48,7 +48,7 @@ class AccessService:
                         authorized = True
                     self.logger.info(f"Authorization obtained locally is_authorized: {authorized}")
                     return  authorized, parking[2]
-            return False, None    
+            return last_event_type=="ACCESS" or False, None    
         except Exception as ex:
             self.logger.error(f"Unable to validate access {ex}")
-            return False, None
+            return last_event_type=="ACCESS" or False, None
