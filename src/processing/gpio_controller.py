@@ -59,35 +59,7 @@ class GPIOController:
             self._mock_states[pin] = True
             self.logger.debug(f"Mock: LED {led_type} on (pin {pin})")
 
-    def blink_led(self, led_type, interval=0.5, duration=None):
-        pin = Config.GPIO_PINS.get(led_type)
-        if not pin:
-            self.logger.error(f"Invalid LED type: {led_type}")
-            return
 
-        if led_type in self._blink_threads and self._blink_threads[led_type].is_alive():
-            self.logger.warning(f"LED {led_type} is already blinking, stopping it first")
-            self.led_off(led_type)
-
-        stop_event = threading.Event()
-        self._stop_events[led_type] = stop_event
-
-        def blink():
-            start_time = time.time()
-            while (duration is None or time.time() - start_time < duration) and not stop_event.is_set():
-                self.GPIO.output(pin, self.GPIO.HIGH)
-                stop_event.wait(interval)
-                self.GPIO.output(pin, self.GPIO.LOW)
-                stop_event.wait(interval)
-            self.GPIO.output(pin, self.GPIO.LOW)  # Asegurar apagado final
-            self.logger.debug(f"LED {led_type} blinking stopped")
-
-        thread = threading.Thread(target=blink, daemon=True)
-        self._blink_threads[led_type] = thread
-        thread.start()
-        self.logger.debug(f"LED {led_type} blinking started")
-
-            
     def led_off(self, led_type):
         pin = Config.GPIO_PINS.get(led_type)
         if not pin:

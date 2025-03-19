@@ -1,3 +1,4 @@
+from picamera2 import Picamera2
 import cv2
 import logging
 from fast_alpr import ALPR
@@ -20,21 +21,20 @@ class PlateDetector:
         self.logger = logging.getLogger(__name__)
 
         # Configurar cámara
-        if Config.SOURCE_TYPE == "CAMERA":
-            from picamera2 import Picamera2
-            self.picam = Picamera2()
-            config = self.picam.create_preview_configuration(main={"size": (640, 480), "format": "RGB888"})
-            self.picam.configure(config)
-            self.picam.start()
-            time.sleep(2)  # Esperar a que la cámara se inicie
-            self.logger.info("Camera activated (PyCamera2 display)")
-        else:
-            self.cap = cv2.VideoCapture(Config.VIDEO_PATH if Config.SOURCE_TYPE == "VIDEO" else Config.STREAM_URL)
+
+
+        self.picam = Picamera2()
+        config = self.picam.create_preview_configuration(main={"size": (640, 480), "format": "RGB888"})
+        self.picam.configure(config)
+        self.picam.start()
+        time.sleep(3)  # Esperar a que la cámara se inicie
+        self.logger.info("Camera activated (PyCamera2 display)")
+
 
     def detect_plates(self, max_frames=None):
         # Iniciar parpadeo azul (processing) en segundo plano
         self.processing_led_active = True
-        self.gpio.blink_led("processing", interval=0.5)
+        self.gpio.led_on("processing")
 
         self.logger.info("Starting plate detection...")
         frame_count = 0
@@ -42,25 +42,12 @@ class PlateDetector:
         try:
             while True:
                 # Capturar frame
-                if Config.SOURCE_TYPE == "CAMERA":
-                    try:
-                        frame = self.picam.capture_array()  # Captura el frame como un array NumPy
-                        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convierte de RGB a BGR para OpenCV
-                  
-                    except Exception as e:
-                        self.logger.error(f"Error capturing frame: {e}")
-                        break
-                else:
-                    ret, frame = self.cap.read()
-                    if not ret:
-                        self.logger.error("Failed to read frame")
-                        break
-
-                # Mostrar el frame en una ventana de OpenCV
-                #cv2.imshow("Camera Preview", frame)
-                self.logger.debug(f"Frame captured with shape: {frame.shape}")  
-                # Salir si se presiona la tecla 'q'
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                try:
+                    frame = self.picam.capture_array()  # Captura el frame como un array NumPy
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convierte de RGB a BGR para OpenCV
+                
+                except Exception as e:
+                    self.logger.error(f"Error capturing frame: {e}")
                     break
 
                 # Procesamiento adicional (ALPR, etc.)
@@ -82,20 +69,21 @@ class PlateDetector:
                         self.logger.info(f"parking identifier {parking_identifier}")
                         if is_authorized:
                             # open gate
+                            self.gpio.led_off("processing")
+                            self.gpio.led_on("access_granted")
                             event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
                             mqtt_event_service.publish_event(event_type, plate)
                             available = True if event_type == "EXIT" else False
                             mqtt_parking_service.publish_parking_update(available, parking_identifier, plate)
-                            self.gpio.led_on("access_granted")
+                            break
                         else:
+                            self.gpio.led_off("processing")
+                            self.gpio.led_on("access_denied")
                             last_event_type = event_service.find_last_registered_event_type(plate)
                             event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
-                            self.gpio.led_on("access_denied")
                             final_event_type = f"DENIED_{event_type}"
                             mqtt_event_service.publish_event(final_event_type, plate)
-                        self.logger.info("awaiting 10 seconds")
-                        self.gpio.led_off("processing")
-                        time.sleep(10)
+
                     else:
                         self.gpio.blink_led("access_denied", interval=0.5, duration=2)
                 
@@ -118,7 +106,7 @@ class PlateDetector:
                 self.gpio.led_off("processing")
                 self.gpio.led_off("access_granted")
                 self.gpio.led_off("access_denied")
-            except ex:
+            except Exception as ex:
                 self.logging.debug("unable to stop leds")
             
 

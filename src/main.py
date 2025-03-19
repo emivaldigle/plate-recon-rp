@@ -20,7 +20,7 @@ def on_motion_detected():
     """Action to perform when motion is detected."""
     detector = PlateDetector()
     detector.detect_plates(30)
-    time.sleep(1)
+    time.sleep(3)
 
 def monitor_motion_in_background(gpio_controller):
     """
