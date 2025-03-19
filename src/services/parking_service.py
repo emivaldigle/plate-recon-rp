@@ -17,7 +17,7 @@ class ParkingService:
         if db_parking is not None:
             last_updated_parking = db_parking[UPDATED_AT_INDEX]
             if isinstance(last_updated_parking, str):
-                last_updated_parking = datetime.strptime(last_updated_parking, "%Y-%m-%d %H:%M:%S")
+                last_updated_parking = datetime.strptime(last_updated_parking, "%Y-%m-%d %H:%M:%S.%f")
         else:
             last_updated_parking = datetime.now()
         
@@ -31,11 +31,7 @@ class ParkingService:
                 for parking in remote_parking:
                     existing_parking = db_client.find_by_id(parking["id"])
                     
-                    api_date_str = parking.get("lastUpdatedAt")
-                    if api_date_str:
-                        api_date = datetime.strptime(api_date_str, "%Y-%m-%d %H:%M:%S")
-                    else:
-                        continue  # Si no hay fecha, no se procesa
+                    api_date = parking.get("lastUpdatedAt")
                     
                     if existing_parking:
                         local_date_str = existing_parking[UPDATED_AT_INDEX]

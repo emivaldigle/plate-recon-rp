@@ -20,7 +20,7 @@ class SyncScheduler:
     def start_scheduler(self):
         config_db = ConfigModel()
         entity_id = Config.ENTITY_ID
-        sync_interval = config_db.find_config(entity_id)[3]
+        sync_interval = 1 #config_db.find_config(entity_id)[3]
 
         if not isinstance(sync_interval, int) or sync_interval <= 0:
             self.logger.error("Invalid sync interval. Defaulting to 5 minutes.")
