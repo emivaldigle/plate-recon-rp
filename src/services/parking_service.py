@@ -17,7 +17,7 @@ class ParkingService:
         if db_parking is not None:
             last_updated_parking = db_parking[UPDATED_AT_INDEX]
             if isinstance(last_updated_parking, str):
-                last_updated_parking = datetime.strptime(last_updated_parking, "%Y-%m-%dT%H:%M:%S")
+                last_updated_parking = datetime.strptime(last_updated_parking, "%Y-%m-%dT%H:%M:%S.%f")
         else:
             last_updated_parking = datetime.now()
         
