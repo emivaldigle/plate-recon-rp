@@ -13,8 +13,8 @@ class Config:
     STREAM_URL = os.getenv("STREAM_URL")
 
     # Ocr
-    os.environ["QT_QPA_PLATFORM"] = "xcb" # vnc for raspberry and xcb for ubuntu
-    os.environ["DISPLAY"] = ":1" # 0 for vnc
+    os.environ["QT_QPA_PLATFORM"] = "vnc" # vnc for raspberry and xcb for ubuntu
+    os.environ["DISPLAY"] = "0" # 0 for vnc
     # Thresholds
     DETECTION_CONFIDENCE = 0.89
     OCR_CONFIDENCE = 0.95
@@ -28,6 +28,7 @@ class Config:
     HTTP_SERVER_HOST = os.getenv("HTTP_SERVER_HOST")
     # MQTT Server
     MQTT_SERVER_HOST = os.getenv("MQTT_SERVER_HOST")
+    MQTT_SERVER_PORT = os.getenv("MQTT_SERVER_PORT", 1883)
 
     # Logging
     LOGGING_LEVEL = logging.DEBUG
@@ -39,7 +40,7 @@ class Config:
             "processing": 18,   # Azul
             "access_granted": 23,  # Verde
             "access_denied": 24, # Rojo
-            "motion_sensor": 3    # Motion
+            "motion_sensor": 4    # Motion
         }
     else:
         GPIO_PINS = {} 

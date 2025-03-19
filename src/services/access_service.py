@@ -35,11 +35,13 @@ class AccessService:
                     self.logger.warning("No parking available found locally, checking remotely...")
                     try:
                         remote_parking = api_client.get(f"/parking/find-by-user/{user_id}")
-                        if remote_parking is not None:
-                            self.logger.debug("Authorization obtained remotely...")
-                            return remote_parking.get("available"), remote_parking.get("parkingIdentifier")
+                        first_available = next((parking for parking in remote_parking if parking.get("available")), None)
+                        if (first_available):
+                            return True, first_available.get("parkingIdentifier")
+                        else:
+                            return False, remote_parking[0].get("parkingIdentifier")
                     except Exception as ex:
-                        self.logger.warning("Unable to check remote parking...")
+                        self.logger.warning(f"Unable to check remote parking... {ex}")
                 else:
                     authorized = parking[5]
                     if authorized == False and last_event_type == "ACCESS":

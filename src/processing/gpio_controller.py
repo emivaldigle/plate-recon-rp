@@ -37,6 +37,8 @@ class GPIOController:
         # Configurar el pin del sensor de movimiento
         
         self.MOTION_SENSOR_PIN = Config.GPIO_PINS.get("motion_sensor")
+        if not self.MOTION_SENSOR_PIN:
+            raise ValueError("Motion sensor pin is not configured in GPIO_PINS.")
         if not self.mock_gpio:
             self.GPIO.setup(self.MOTION_SENSOR_PIN, self.GPIO.IN)
 

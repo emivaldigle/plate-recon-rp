@@ -19,7 +19,8 @@ def initialize_db():
 def on_motion_detected():
     """Action to perform when motion is detected."""
     detector = PlateDetector()
-    detector.detect_plates(max_frames=250)
+    detector.detect_plates(100)
+    time.sleep(10)
 
 
 def monitor_motion_in_background(gpio_controller):

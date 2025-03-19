@@ -6,7 +6,7 @@ from src.database.models import EventModel
 from src.config import Config
 import logging
 
-MQTT_BROKER = "172.18.0.2"
+MQTT_BROKER = Config.MQTT_SERVER_HOST
 MQTT_PORT = 1883
 EVENTS_TOPIC = "local-events/" + Config.ENTITY_ID + "/create"
 

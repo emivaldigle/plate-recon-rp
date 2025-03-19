@@ -19,16 +19,15 @@ class PlateDetector:
         self.gpio = GPIOController()
         self.logger = logging.getLogger(__name__)
 
-        # Configurar camara
+        # Configurar cámara
         if Config.SOURCE_TYPE == "CAMERA":
             from picamera2 import Picamera2
             self.picam = Picamera2()
             config = self.picam.create_preview_configuration(main={"size": (640, 480), "format": "RGB888"})
             self.picam.configure(config)
-            self.picam.start_preview()
             self.picam.start()
-            time.sleep(2)
-            self.logger.info("Camera activated (OpenCV display)")
+            time.sleep(2)  # Esperar a que la cámara se inicie
+            self.logger.info("Camera activated (PyCamera2 display)")
         else:
             self.cap = cv2.VideoCapture(Config.VIDEO_PATH if Config.SOURCE_TYPE == "VIDEO" else Config.STREAM_URL)
 
@@ -44,14 +43,27 @@ class PlateDetector:
             while True:
                 # Capturar frame
                 if Config.SOURCE_TYPE == "CAMERA":
-                    frame = self.picam.capture_array()
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    try:
+                        frame = self.picam.capture_array()  # Captura el frame como un array NumPy
+                        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convierte de RGB a BGR para OpenCV
+                  
+                    except Exception as e:
+                        self.logger.error(f"Error capturing frame: {e}")
+                        break
                 else:
                     ret, frame = self.cap.read()
                     if not ret:
                         self.logger.error("Failed to read frame")
                         break
 
+                # Mostrar el frame en una ventana de OpenCV
+                #cv2.imshow("Camera Preview", frame)
+                self.logger.debug(f"Frame captured with shape: {frame.shape}")  
+                # Salir si se presiona la tecla 'q'
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+                # Procesamiento adicional (ALPR, etc.)
                 results = self.alpr.predict(frame)
                 for result in results:
                     plate = result.ocr.text
@@ -81,30 +93,20 @@ class PlateDetector:
                             mqtt_event_service.publish_event("DENIED_" + event_type, plate)
                     else:
                         self.gpio.blink_led("access_denied", interval=0.5, duration=2)
-                        # Dibujar en el frame
-                        bbox = result.detection.bounding_box
-                        cv2.rectangle(frame, (bbox.x1, bbox.y1), (bbox.x2, bbox.y2), (0, 255, 0), 2)
-                        cv2.putText(frame, plate, (bbox.x1, bbox.y1-10), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-                    # Mostrar frame
-                cv2.imshow("Detector", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-                # Control de frames maximos
+                # Control de frames máximos
                 frame_count += 1
+                self.logger.info(f"frame count {frame_count}")
                 if max_frames and frame_count >= max_frames:
                     self.logger.info(f"Stopping after {frame_count} frames")
                     break
 
         finally:
             # Detener parpadeos y limpiar
-            self.processing_led_active = False
-            self.gpio.cleanup()
             if Config.SOURCE_TYPE == "CAMERA":
-                self.picam.stop_preview()
                 self.picam.stop()
             else:
                 self.cap.release()
             cv2.destroyAllWindows()
+            
+
