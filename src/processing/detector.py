@@ -27,7 +27,7 @@ class PlateDetector:
         config = self.picam.create_preview_configuration(main={"size": (640, 480), "format": "RGB888"})
         self.picam.configure(config)
         self.picam.start()
-        time.sleep(3)  # Esperar a que la cámara se inicie
+        time.sleep(1)  # Esperar a que la cámara se inicie
         self.logger.info("Camera activated (PyCamera2 display)")
 
 
@@ -69,19 +69,19 @@ class PlateDetector:
                         if is_authorized:
                             # open gate
                             self.gpio.led_off("processing")
-                            self.gpio.led_on("access_granted")
                             event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
                             mqtt_event_service.publish_event(event_type, plate)
                             available = True if event_type == "EXIT" else False
                             mqtt_parking_service.publish_parking_update(available, parking_identifier, plate)
+                            self.gpio.led_on("access_granted")
                             break
                         else:
                             self.gpio.led_off("processing")
-                            self.gpio.led_on("access_denied")
                             last_event_type = event_service.find_last_registered_event_type(plate)
                             event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
                             final_event_type = f"DENIED_{event_type}"
                             mqtt_event_service.publish_event(final_event_type, plate)
+                            self.gpio.led_on("access_denied")
                 
                 # Control de frames máximos
                 frame_count += 1

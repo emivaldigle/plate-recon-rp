@@ -12,6 +12,7 @@ logging.basicConfig(
     handlers=[
         logging.handlers.QueueHandler(log_queue),  # Usando la cola para el QueueHandler
         logging.FileHandler("plate_recognition.log", mode='a'),
+        logging.StreamHandler() 
     ]
 )
 
