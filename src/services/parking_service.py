@@ -17,7 +17,7 @@ class ParkingService:
         if db_parking is not None:
             last_updated_parking = db_parking[UPDATED_AT_INDEX]
             if isinstance(last_updated_parking, str):
-                last_updated_parking = datetime.strptime(last_updated_parking, "%Y-%m-%dT%H:%M:%S.%f")
+                last_updated_parking = datetime.strptime(last_updated_parking, "%Y-%m-%dT%H:%M:%S")
         else:
             last_updated_parking = datetime.now()
         
@@ -32,10 +32,10 @@ class ParkingService:
                     existing_parking = db_client.find_by_id(parking["id"])
                     
                     api_date_str = parking.get("lastUpdatedAt")
-                    api_date = datetime.strptime(api_date_str, "%Y-%m-%dT%H:%M:%S")
+                    api_date = datetime.strptime(api_date_str, "%Y-%m-%dT%H:%M:%S.%f")
                     if existing_parking:
                         local_date_str = existing_parking[UPDATED_AT_INDEX]
-                        local_date = datetime.strptime(local_date_str, "%Y-%m-%dT%H:%M:%S.%f") if isinstance(local_date_str, str) else local_date_str
+                        local_date = datetime.strptime(local_date_str, "%Y-%m-%dT%H:%M:%S") if isinstance(local_date_str, str) else local_date_str
                         
                         if api_date > local_date:
                             self.logger.info("Updating local parking")
