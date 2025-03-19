@@ -44,7 +44,6 @@ class PlateDetector:
                 # Capturar frame
                 try:
                     frame = self.picam.capture_array()  # Captura el frame como un array NumPy
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convierte de RGB a BGR para OpenCV
                 
                 except Exception as e:
                     self.logger.error(f"Error capturing frame: {e}")
@@ -83,9 +82,6 @@ class PlateDetector:
                             event_type = "EXIT" if last_event_type is not None and last_event_type == "ACCESS" else "ACCESS"
                             final_event_type = f"DENIED_{event_type}"
                             mqtt_event_service.publish_event(final_event_type, plate)
-
-                    else:
-                        self.gpio.blink_led("access_denied", interval=0.5, duration=2)
                 
                 # Control de frames máximos
                 frame_count += 1
@@ -96,13 +92,9 @@ class PlateDetector:
 
         finally:
             # Detener parpadeos y limpiar
-            if Config.SOURCE_TYPE == "CAMERA":
+            try:
                 self.picam.stop()
                 self.picam.close()
-            else:
-                self.cap.release()
-            cv2.destroyAllWindows()
-            try:
                 self.gpio.led_off("processing")
                 self.gpio.led_off("access_granted")
                 self.gpio.led_off("access_denied")
