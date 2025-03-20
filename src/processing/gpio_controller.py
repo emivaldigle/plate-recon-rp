@@ -111,7 +111,7 @@ class GPIOController:
 
                     if motion_detected != last_state:  # Solo imprimir si el estado cambia
                         last_state = motion_detected
-                        self.logger.info("Motion detected!" if motion_detected else "Motion stopped.")
+                        self.logger.debug("Motion detected!" if motion_detected else "Motion stopped.")
 
                         if motion_detected and callback:
                             try:

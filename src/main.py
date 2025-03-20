@@ -3,6 +3,7 @@ from src.database.database_connector import DatabaseConnector
 from src.database.data_loader import Dataloader
 from src.scheduler.sync_scheduler import SyncScheduler
 from src.processing.gpio_controller import GPIOController
+from src.messaging.mqtt_parking_service import MqttParkingService
 import threading
 import time
 
@@ -48,6 +49,8 @@ def main():
     # Configure the GPIO controller
     gpio_controller = GPIOController()
 
+
+
     # Monitor the motion sensor in a background thread
     motion_monitor_thread = threading.Thread(
         target=monitor_motion_in_background, args=(gpio_controller,), daemon=True
@@ -55,7 +58,10 @@ def main():
     motion_monitor_thread.start()
 
     # Keep the main program running
-    try:
+    try:    
+    # Initialize mqtt topic subscriptions
+        # mqtt_parking_service = MqttParkingService()
+        # mqtt_parking_service.subscribe_on_topic()
         while True:
             time.sleep(1)  # Prevent excessive CPU usage
     except KeyboardInterrupt:

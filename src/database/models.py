@@ -134,7 +134,7 @@ class ParkingModel:
         cursor.execute("SELECT * FROM parking WHERE id = ?", (id,))
         parking = cursor.fetchone()
         conn.close()
-        logging.debug(f"Parking found by identifier {id}: {parking}")
+        logging.debug(f"Parking found by id {id}: {parking}")
         return parking
     
     def find_by_user_id(self, user_id):
@@ -222,7 +222,6 @@ class ParkingModel:
                            current_license_plate = ?, 
                            is_for_visit = ?, 
                            available = ?, 
-                           created_at = ?, 
                            expiration_date = ?,
                            updated_at = ?
                 WHERE id = ?
@@ -234,6 +233,63 @@ class ParkingModel:
             logging.error(f"Error updating parking: {e}")
         finally:
             conn.close()
+            
+    def _parse_to_local_date(self, date_str):
+        """
+        Convierte la fecha de la API al formato correcto para la base de datos.
+        """
+        if isinstance(date_str, datetime):
+            return date_str.strftime("%Y-%m-%d %H:%M:%S")
+
+        if "T" in date_str:  # Si viene en formato con "T"
+            return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f").strftime("%Y-%m-%d %H:%M:%S")
+
+        return date_str  #
+            
+    def map_to_insert_db(self, parking):
+        """
+        Map parking data from the API to the format required for database insertion.
+
+        Args:
+            parking (dict): Parking data from the API.
+
+        Returns:
+            tuple: Data formatted for database insertion.
+        """
+        return (
+            parking.get("id"),
+            parking.get("user", {}).get("id") if parking.get("user") else None,
+            parking.get("identifier"),
+            parking.get("currentLicensePlate"),
+            parking.get("isForVisit"),
+            parking.get("available"),
+            self._parse_to_local_date(parking.get("createdAt")),
+            self._parse_to_local_date(parking.get("expirationDate")) if parking.get("expirationDate") else None,
+            self._parse_to_local_date(parking.get("lastUpdatedAt")),
+            
+        )
+
+    def map_to_update_db(self, parking):
+        """
+        Map parking data from the API to the format required for database update.
+
+        Args:
+            parking (dict): Parking data from the API.
+
+        Returns:
+            tuple: Data formatted for database update.
+        """
+        return (
+            parking.get("user", {}).get("id") if parking.get("user") else None,
+            parking.get("identifier"),
+            parking.get("currentLicensePlate"),
+            parking.get("isForVisit"),
+            parking.get("available"),
+            self._parse_to_local_date(parking.get("expirationDate")) if parking.get("expirationDate") else None,
+            self._parse_to_local_date(parking.get("lastUpdatedAt")),
+            parking.get("id"),
+        )
+
 
 class EventModel:
     def __init__(self):

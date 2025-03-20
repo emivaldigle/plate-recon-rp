@@ -13,10 +13,10 @@ class Config:
     STREAM_URL = os.getenv("STREAM_URL")
 
     # Ocr
-    os.environ["QT_QPA_PLATFORM"] = "vnc" # vnc for raspberry and xcb for ubuntu
-    os.environ["DISPLAY"] = "0" # 0 for vnc
+    os.environ["QT_QPA_PLATFORM"] = "xcb" # vnc for raspberry and xcb for ubuntu
+    os.environ["DISPLAY"] = ":0" # 0 for vnc
     # Thresholds
-    DETECTION_CONFIDENCE = 0.89
+    DETECTION_CONFIDENCE = 0.85
     OCR_CONFIDENCE = 0.95
 
     # Local database
@@ -40,7 +40,8 @@ class Config:
             "processing": 18,   # Azul
             "access_granted": 23,  # Verde
             "access_denied": 24, # Rojo
-            "motion_sensor": 17    # Motion
+            "motion_sensor": 17,    # Motion
+            "remote_gate_control": 27 # Remote gate access
         }
     else:
         GPIO_PINS = {} 
@@ -48,3 +49,9 @@ class Config:
     print(f"SOURCE_TYPE: {SOURCE_TYPE}")
     print(f"VIDEO_PATH: {VIDEO_PATH}")
     print(f"STREAM_URL: {STREAM_URL}")
+
+    PATTERN_MAP = {
+    "CL_VEHICLE": r"^[A-Z]{4}\d{2}$",  # Ejemplo: TTWC85
+    "CL_MOTORBIKE": r"^[A-Z]{3}\d$",   # Ejemplo: ABC1
+    "CL_NEW_MOTORBIKE": r"^[A-Z]{4}\d$",  # Ejemplo: ABCD1
+    }   
