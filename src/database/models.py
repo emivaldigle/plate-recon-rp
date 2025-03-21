@@ -5,6 +5,19 @@ from src.database.database_connector import DatabaseConnector
 # Configuración básica de logging
 logging.basicConfig(level=logging.DEBUG)
 
+            
+def _parse_to_local_date(date_str):
+    """
+    Convierte la fecha de la API al formato correcto para la base de datos.
+    """
+    if isinstance(date_str, datetime):
+        return date_str.strftime("%Y-%m-%d %H:%M:%S")
+
+    if "T" in date_str:  # Si viene en formato con "T"
+        return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f").strftime("%Y-%m-%d %H:%M:%S")
+
+    return date_str  #
+
 class VehicleModel:
     
     def __init__(self):
@@ -233,18 +246,7 @@ class ParkingModel:
             logging.error(f"Error updating parking: {e}")
         finally:
             conn.close()
-            
-    def _parse_to_local_date(self, date_str):
-        """
-        Convierte la fecha de la API al formato correcto para la base de datos.
-        """
-        if isinstance(date_str, datetime):
-            return date_str.strftime("%Y-%m-%d %H:%M:%S")
 
-        if "T" in date_str:  # Si viene en formato con "T"
-            return datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S.%f").strftime("%Y-%m-%d %H:%M:%S")
-
-        return date_str  #
             
     def map_to_insert_db(self, parking):
         """
@@ -263,9 +265,9 @@ class ParkingModel:
             parking.get("currentLicensePlate"),
             parking.get("isForVisit"),
             parking.get("available"),
-            self._parse_to_local_date(parking.get("createdAt")),
-            self._parse_to_local_date(parking.get("expirationDate")) if parking.get("expirationDate") else None,
-            self._parse_to_local_date(parking.get("lastUpdatedAt")),
+            _parse_to_local_date(parking.get("createdAt")),
+            _parse_to_local_date(parking.get("expirationDate")) if parking.get("expirationDate") else None,
+            _parse_to_local_date(parking.get("lastUpdatedAt")),
             
         )
 
@@ -285,8 +287,8 @@ class ParkingModel:
             parking.get("currentLicensePlate"),
             parking.get("isForVisit"),
             parking.get("available"),
-            self._parse_to_local_date(parking.get("expirationDate")) if parking.get("expirationDate") else None,
-            self._parse_to_local_date(parking.get("lastUpdatedAt")),
+            _parse_to_local_date(parking.get("expirationDate")) if parking.get("expirationDate") else None,
+            _parse_to_local_date(parking.get("lastUpdatedAt")),
             parking.get("id"),
         )
 
@@ -321,7 +323,7 @@ class EventModel:
             cursor.execute('''
                 INSERT INTO events (id, type, poc_id, plate, created_at)
                 VALUES (?, ?, ?, ?, ?)
-            ''', (event_id, event_type, poc_id, plate, datetime.now()))
+            ''', (event_id, event_type, poc_id, plate,  _parse_to_local_date(datetime.now())))
             conn.commit()  # Confirma la transacción
             logging.debug(f"Event registered with type {event_type} and plate {plate}")
         except Exception as e:
@@ -338,3 +340,36 @@ class EventModel:
         conn.close()
         logging.debug(f"Event found by plate {plate}: {event}")
         return event
+
+    def find_pending_events(self):
+        conn = self.db.get_conn()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM events WHERE sync = 0 ORDER BY created_at ASC")
+        events = cursor.fetchall()
+        conn.close()
+        logging.debug(f"Pending events found : {events}")
+        return events
+    
+    def mark_batch_as_sync(self, event_ids):
+        """
+        Mark a batch of events as synchronized in the database within a transaction.
+        :param event_ids: List of event IDs to mark as synchronized.
+        """
+        if not event_ids:
+            return
+
+        query = "UPDATE events SET sync = 1 WHERE id IN ({})".format(
+            ",".join(["?"] * len(event_ids))
+        )
+        logging.debug(f"query: {query}")
+        conn = self.db.get_conn()
+        try:
+            with conn as cursor:
+                cursor.execute("BEGIN TRANSACTION") 
+                cursor.execute(query, event_ids)    
+                conn.commit()    
+                logging.info(f"Successfully marked {len(event_ids)} events as synchronized.")
+                
+        except Exception as ex:
+            conn.rollback()
+            logging.error(f"Error marking batch as synchronized: {ex}")

@@ -48,5 +48,3 @@ class EntityConfigService:
         except Exception as ex:
             self.logger.error(f"Unable to load configuration {ex}")
 
-        return remote_data
-

@@ -60,8 +60,8 @@ def main():
     # Keep the main program running
     try:    
     # Initialize mqtt topic subscriptions
-        # mqtt_parking_service = MqttParkingService()
-        # mqtt_parking_service.subscribe_on_topic()
+        mqtt_parking_service = MqttParkingService()
+        mqtt_parking_service.subscribe_on_topic()
         while True:
             time.sleep(1)  # Prevent excessive CPU usage
     except KeyboardInterrupt:

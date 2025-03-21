@@ -1,5 +1,6 @@
 from src.config import Config
 from src.database.models import ParkingModel
+from src.database.models import _parse_to_local_date
 from datetime import datetime
 import logging
 from src.http.synchronous_api_client import SynchronousAPIClient
@@ -16,7 +17,7 @@ class ParkingService:
         This method fetches updated parking data from the API and updates or creates records in the database.
         """
 
-        last_updated_parking = self.db_client._parse_to_local_date(self.db_client.find_last_sync_parking()[8])
+        last_updated_parking = _parse_to_local_date(self.db_client.find_last_sync_parking()[8])
 
         self.logger.info(f"Last parking updated at {last_updated_parking}")
         api_client = SynchronousAPIClient(Config.HTTP_SERVER_HOST)
@@ -63,7 +64,7 @@ class ParkingService:
 
         if db_parking is not None:
             last_updated_parking = db_parking[UPDATED_AT_INDEX]
-            last_updated_parking = self.db_client._parse_to_local_date(last_updated_parking)
+            last_updated_parking = _parse_to_local_date(last_updated_parking)
         
         else:
             last_updated_parking = datetime.now()
@@ -83,7 +84,7 @@ class ParkingService:
             api_date = datetime.strptime(api_date_str, "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")
 
             if existing_parking:
-                local_date = self.db_client._parse_to_local_date(existing_parking[8])
+                local_date = _parse_to_local_date(existing_parking[8])
                 if api_date > local_date:
                     self.logger.info("Updating local parking")
                     self.db_client.update_parking(self.db_client.map_to_update_db(parking))

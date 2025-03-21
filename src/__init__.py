@@ -7,7 +7,7 @@ log_queue = queue.Queue()
 
 # Configuración de logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.handlers.QueueHandler(log_queue),  # Usando la cola para el QueueHandler

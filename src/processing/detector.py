@@ -108,7 +108,7 @@ class PlateDetector:
         """Handles access granting logic."""
         self.gpio.led_off("processing")
         mqtt_event_service.publish_event(event_type, plate)
-        available = event_type == "EXIT"
+        available = event_type == "EXIT" or event_type is None
         mqtt_parking_service.publish_parking_update(available, parking_identifier, plate)
         self.gpio.led_on("access_granted")
 

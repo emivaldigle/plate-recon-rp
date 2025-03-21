@@ -3,6 +3,7 @@ import json
 import uuid
 from datetime import datetime
 from src.database.models import ParkingModel
+from src.database.models import _parse_to_local_date
 from src.config import Config
 import logging
 
@@ -54,8 +55,8 @@ class MqttParkingService:
             local_last_updated_at = local_parking[8]
 
             # Convertir fechas a objetos datetime para comparar
-            remote_date = self.parking_db._parse_to_local_date(remote_last_updated_at)
-            local_date = self.parking_db._parse_to_local_date(local_last_updated_at)
+            remote_date = _parse_to_local_date(remote_last_updated_at)
+            local_date = _parse_to_local_date(local_last_updated_at)
 
             # Comparar fechas
             if remote_date > local_date:
