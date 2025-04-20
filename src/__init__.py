@@ -1,12 +1,18 @@
 import logging
+import logging.handlers
+import queue  # Para usar QueueHandler
 
-# Configurar logging global
+# Crear una cola para los logs
+log_queue = queue.Queue()
+
+# Configuración de logging
 logging.basicConfig(
-    level=logging.DEBUG,  # Asegúrate de que el nivel sea DEBUG o inferior para capturar INFO <button class="citation-flag" data-index="2">
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("plate_recognition.log"),  # Guardar logs en un archivo <button class="citation-flag" data-index="8">
-        logging.StreamHandler()  # Mostrar logs en la consola <button class="citation-flag" data-index="2">
+        logging.handlers.QueueHandler(log_queue),  # Usando la cola para el QueueHandler
+        logging.FileHandler("plate_recognition.log", mode='a'),
+        logging.StreamHandler() 
     ]
 )
 
